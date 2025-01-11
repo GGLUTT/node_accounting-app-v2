@@ -1,123 +1,23 @@
 'use strict';
 
-const express = require('express'); // імпортуємо express
+const express = require('express');
+const cors = require('cors');
+const usersRouter = require('./routers/users-Routers');
+const expensesRouter = require('./routers/expenses-Routers');
+const usersService = require('./services/users-Services');
+const expensesService = require('./services/expenses-Services');
 
 function createServer() {
-  const server = express();
+  usersService.clearUsers();
+  expensesService.clearExpense();
 
-  // Створення масивів для збереження користувачів та витрат
-  const users = [];
-  const expenses = [];
+  const app = express();
 
-  server.use(express.json()); // Для парсингу JSON в тілі запиту
+  app.use(express.json());
+  app.use(cors());
 
-  // Маршрут для створення користувача
-  server.post('/users', (req, res) => {
-    const { name } = req.body;
-
-    if (!name) {
-      return res.status(400).send('Name is required');
-    }
-
-    const newUser = { id: users.length + 1, name };
-
-    users.push(newUser);
-    res.status(201).json(newUser);
-  });
-
-  // Маршрут для отримання всіх користувачів
-  server.get('/users', (req, res) => {
-    res.status(200).json(users);
-  });
-
-  // Маршрут для створення витрати
-  server.post('/expenses', (req, res) => {
-    const { name, amount, userId } = req.body;
-
-    // Перевірка, чи всі поля надані
-    if (!name || !amount || !userId) {
-      return res.status(400).send('Name, amount, and userId are required');
-    }
-
-    // Перевірка, чи amount є числом
-    if (isNaN(amount)) {
-      return res.status(400).send('Amount must be a number');
-    }
-
-    // Перевірка, чи існує користувач з таким userId
-    const userExists = users.find((user) => user.id === userId);
-
-    if (!userExists) {
-      return res.status(400).send('User not found');
-    }
-
-    const newExpense = {
-      id: expenses.length + 1,
-      name,
-      amount,
-      userId,
-    };
-
-    expenses.push(newExpense);
-    res.status(201).json(newExpense);
-  });
-
-  // Маршрут для отримання всіх витрат
-  server.get('/expenses', (req, res) => {
-    res.status(200).json(expenses);
-  });
-
-  // Маршрут для отримання витрати за ID
-  server.get('/expenses/:id', (req, res) => {
-    const expense = expenses.find((e) => e.id === parseInt(req.params.id));
-
-    if (!expense) {
-      return res.status(404).send('Expense not found');
-    }
-    res.status(200).json(expense);
-  });
-
-  // Маршрут для оновлення витрати
-  server.put('/expenses/:id', (req, res) => {
-    const expense = expenses.find((e) => e.id === parseInt(req.params.id));
-
-    if (!expense) {
-      return res.status(404).send('Expense not found');
-    }
-
-    const { name, amount, userId } = req.body;
-
-    // Перевірка, чи amount є числом
-    if (amount && isNaN(amount)) {
-      return res.status(400).send('Amount must be a number');
-    }
-
-    // Перевірка, чи існує користувач з таким userId
-    if (userId && !users.find((user) => user.id === userId)) {
-      return res.status(400).send('User not found');
-    }
-
-    expense.name = name || expense.name;
-    expense.amount = amount || expense.amount;
-    expense.userId = userId || expense.userId;
-
-    res.status(200).json(expense);
-  });
-
-  // Маршрут для видалення витрати
-  server.delete('/expenses/:id', (req, res) => {
-    const index = expenses.findIndex((e) => e.id === parseInt(req.params.id));
-
-    if (index === -1) {
-      return res.status(404).send('Expense not found');
-    }
-    expenses.splice(index, 1);
-    res.status(204).send();
-  });
-
-  return server;
+  app.use('/users', usersRouter);
+  app.use('/expenses', expensesRouter);
 }
 
-module.exports = {
-  createServer,
-};
+module.exports = createServer;
